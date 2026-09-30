@@ -160,9 +160,11 @@ export const CameraView: React.FC<CameraViewProps> = ({
       let rawPrediction;
       let features: ExtractedGestureFeatures | undefined;
       if (detection.handsCount > 0 && detection.landmarks[0]) {
+        const velocities = alphabetMotionTracker.getRecentVelocities();
         features = gestureFeatures.extract(
           detection.landmarks[0],
-          detection.landmarks[1]
+          detection.landmarks[1],
+          velocities
         );
         rawPrediction = signClassifier.classify(
           features,
@@ -598,6 +600,21 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
             {/* Bottom HUD: Live Stability & Recognized Sign Preview */}
             <div className="bg-slate-950/85 backdrop-blur-md rounded-xl p-3 border border-slate-800 text-white space-y-1.5 pointer-events-auto">
+              {/* Conflict banner if Gemini verification disagreed (Requirement 15) */}
+              {displayResult?.verificationStatus === 'DISAGREED' && (
+                <div className="p-2 bg-rose-950/80 border border-rose-500/50 rounded-lg text-rose-200 text-xs mb-1.5 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span>
+                      Local: <strong className="text-white">{displayResult.sign}</strong> | AI Verification: <strong className="text-amber-300">{displayResult.verificationDetails?.verifiedSign || 'Different'}</strong>
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-rose-500/30 text-rose-300 px-1.5 py-0.5 rounded uppercase">
+                    CONFLICT — PLEASE RETRY
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-400 font-mono">
                   Stability: {renderStabilityMeter(displayResult?.stabilityScore ?? 0)}
@@ -631,12 +648,18 @@ export const CameraView: React.FC<CameraViewProps> = ({
 
                 <div className="text-right">
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                    Confidence:
+                    AI Confidence:
                   </span>
                   <span className="text-base font-extrabold text-cyan-400 font-mono">
                     {displayResult?.finalConfidence ?? 0}%
                   </span>
                 </div>
+              </div>
+
+              {/* Prototype transparency notice */}
+              <div className="text-[10px] text-slate-500 pt-0.5 flex justify-between items-center">
+                <span>AI recognition confidence</span>
+                <span className="italic">Prototype — results may vary.</span>
               </div>
             </div>
           </div>
@@ -783,35 +806,94 @@ export const CameraView: React.FC<CameraViewProps> = ({
           </div>
         )}
 
-        {/* Expandable Technical Details Section */}
+        {/* Expandable Developer Mode / Technical Diagnostics Section (Requirement 23) */}
         {showTechnicalDetails && (
-          <div className="p-3 bg-white border border-slate-200 rounded-lg text-xs space-y-2 mt-2">
-            <div className="flex justify-between text-slate-700 font-semibold border-b border-slate-100 pb-1">
-              <span>Pipeline Diagnostics</span>
-              <span className="font-mono text-[11px] text-indigo-600">
-                Model: MediaPipe Tasks Vision + Prototype ASL Classifier
+          <div className="p-3.5 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs space-y-3 mt-2 font-mono">
+            <div className="flex justify-between items-center text-slate-300 font-semibold border-b border-slate-800 pb-2">
+              <span className="flex items-center gap-1.5 text-indigo-400">
+                <Sliders className="w-4 h-4" />
+                <span>Developer Diagnostics & Pipeline</span>
+              </span>
+              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/40">
+                TFJS Deep Classifier + MediaPipe
               </span>
             </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-              <div className="bg-slate-50 p-2 rounded">
-                <span className="text-slate-500 block">Frame Rate</span>
-                <span className="font-bold text-slate-800">{fps} FPS</span>
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Frame Rate</span>
+                <span className="font-bold text-emerald-400 text-sm">{fps} FPS</span>
               </div>
-              <div className="bg-slate-50 p-2 rounded">
-                <span className="text-slate-500 block">Processing Latency</span>
-                <span className="font-bold text-slate-800">{latencyMs} ms (Local)</span>
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Latency</span>
+                <span className="font-bold text-cyan-300 text-sm">{latencyMs} ms</span>
               </div>
-              <div className="bg-slate-50 p-2 rounded">
-                <span className="text-slate-500 block">Consecutive Frames</span>
-                <span className="font-bold text-slate-800">
-                  {displayResult?.consecutiveFrames ?? 0} frames
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Landmark Quality</span>
+                <span className={`font-bold text-sm ${isInsideGuide ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {isInsideGuide ? 'GOOD' : 'FAIR (Outside Box)'}
                 </span>
               </div>
-              <div className="bg-slate-50 p-2 rounded">
-                <span className="text-slate-500 block">Verification Layer</span>
-                <span className="font-bold text-slate-800">
-                  {autoVerifyUncertain ? 'Enabled (Secondary)' : 'Local Only'}
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Recognition Mode</span>
+                <span className="font-bold text-indigo-300 text-sm">{activeMode}</span>
+              </div>
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Palm Orientation</span>
+                <span className="font-bold text-slate-200 text-sm">
+                  {displayResult?.palmOrientation || 'facing_camera'}
                 </span>
+              </div>
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Temporal Agreement</span>
+                <span className="font-bold text-slate-200 text-sm">
+                  {displayResult?.consecutiveFrames ?? 0}/12 frames ({displayResult?.stabilityScore ?? 0}%)
+                </span>
+              </div>
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Model Probability</span>
+                <span className="font-bold text-cyan-400 text-sm">
+                  {displayResult?.topCandidates?.[0]
+                    ? `${(displayResult.topCandidates[0].probability * 100).toFixed(0)}%`
+                    : `${displayResult?.finalConfidence ?? 0}%`}
+                </span>
+              </div>
+              <div className="bg-slate-800/80 p-2 rounded-lg border border-slate-700/60">
+                <span className="text-slate-400 block text-[10px] uppercase">Final Confidence</span>
+                <span className="font-bold text-emerald-400 text-sm">
+                  {displayResult?.finalConfidence ?? 0}%
+                </span>
+              </div>
+            </div>
+
+            {/* Top 3 Candidate Probabilities */}
+            <div className="bg-slate-800/60 p-2.5 rounded-lg border border-slate-700/60">
+              <span className="text-slate-400 block text-[10px] uppercase font-semibold mb-1">
+                Top Model Candidates & Disambiguation Margin:
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {displayResult?.topCandidates && displayResult.topCandidates.length > 0 ? (
+                  displayResult.topCandidates.slice(0, 3).map((cand, idx) => (
+                    <span
+                      key={idx}
+                      className={`px-2 py-1 rounded text-xs ${
+                        idx === 0
+                          ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/60 font-bold'
+                          : 'bg-slate-700/50 text-slate-300 border border-slate-600/40'
+                      }`}
+                    >
+                      {idx === 0 ? 'Top: ' : idx === 1 ? 'Second: ' : 'Third: '}
+                      {cand.label} ({(cand.probability * 100).toFixed(0)}%)
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-slate-500 text-xs italic">Awaiting hand posture...</span>
+                )}
+                {typeof displayResult?.marginDelta === 'number' && (
+                  <span className="text-[11px] text-slate-400 ml-auto font-mono">
+                    Margin: {(displayResult.marginDelta * 100).toFixed(1)}%
+                  </span>
+                )}
               </div>
             </div>
           </div>

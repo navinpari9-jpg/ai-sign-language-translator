@@ -69,13 +69,25 @@ export interface ExtractedGestureFeatures {
     pinky: number;
   };
   jointAngles: {
+    thumbCmc?: number;
     thumbMcp: number;
     thumbIp: number;
+    indexMcp?: number;
     indexPip: number;
+    indexDip?: number;
+    middleMcp?: number;
     middlePip: number;
+    middleDip?: number;
+    ringMcp?: number;
     ringPip: number;
+    ringDip?: number;
+    pinkyMcp?: number;
     pinkyPip: number;
+    pinkyDip?: number;
   };
+  palmCenter?: Landmark3D;
+  palmWidth?: number;
+  palmHeight?: number;
   palmOrientation: 'facing_camera' | 'facing_away' | 'side' | 'up' | 'down';
   wristTiltAngleDeg: number;
   wristToMiddleRatio: number;
@@ -115,8 +127,11 @@ export interface RawClassifierResult {
   score: number;
   signType: SignType;
   allCandidates: Record<string, number>;
+  topCandidates?: Array<{ label: string; probability: number }>;
+  marginDelta?: number;
   explanation: string;
   isRecognized: boolean;
+  isAmbiguous?: boolean;
   mode?: RecognitionMode;
   rejectionReason?: string;
 }
@@ -138,6 +153,14 @@ export interface SmoothedRecognitionResult {
   fingerStates?: FingerStatesAnalysis;
   palmOrientation?: string;
   candidateScores?: Record<string, number>;
+  topCandidates?: Array<{ label: string; probability: number }>;
+  marginDelta?: number;
+  isAmbiguous?: boolean;
+  ambiguityDetails?: {
+    top1: string;
+    top2: string;
+    margin: number;
+  };
   rejectionReason?: string;
   landmarks?: HandLandmarks[];
   boundingBoxes?: HandBoundingBox[];

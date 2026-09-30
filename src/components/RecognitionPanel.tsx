@@ -166,6 +166,55 @@ export const RecognitionPanel: React.FC<RecognitionPanelProps> = ({
                 </p>
               </div>
 
+              {/* Top Candidates & Disambiguation Breakdown (Requirement 10) */}
+              {result.topCandidates && result.topCandidates.length > 0 && (
+                <div className="mt-3 pt-2.5 border-t border-indigo-100/60">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex justify-between">
+                    <span>Candidate Probabilities</span>
+                    {typeof result.marginDelta === 'number' && (
+                      <span className="text-indigo-600 font-mono">
+                        Margin: {(result.marginDelta * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 text-xs">
+                    {result.topCandidates.slice(0, 3).map((c, i) => (
+                      <div
+                        key={i}
+                        className={`p-1.5 rounded-lg border text-center ${
+                          i === 0
+                            ? 'bg-indigo-100/70 border-indigo-200 text-indigo-900 font-bold'
+                            : 'bg-white/80 border-slate-200/80 text-slate-600'
+                        }`}
+                      >
+                        <div className="text-[10px] text-slate-400">
+                          {i === 0 ? 'Top 1' : i === 1 ? 'Top 2' : 'Top 3'}
+                        </div>
+                        <div className="text-sm font-black">{c.label}</div>
+                        <div className="text-[10px] font-mono">{(c.probability * 100).toFixed(0)}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Gemini Verification Conflict State (Requirement 15) */}
+              {result.verificationStatus === 'DISAGREED' && (
+                <div className="mt-3 p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-rose-800">
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                    <span>Verification Conflict</span>
+                  </div>
+                  <div className="text-[11px] text-slate-700 flex justify-between">
+                    <span>Local: <strong>{result.sign}</strong></span>
+                    <span>AI Verification: <strong>{result.verificationDetails?.verifiedSign || 'Different'}</strong></span>
+                  </div>
+                  <div className="text-[10px] text-rose-700 font-semibold uppercase tracking-wider">
+                    STATUS: CONFLICT — PLEASE RETRY
+                  </div>
+                </div>
+              )}
+
               {/* Status Note & Classification Source */}
               <div className="mt-3 pt-2 border-t border-indigo-100/60 flex items-center justify-between text-[11px] text-slate-500">
                 <span className="inline-flex items-center gap-1">
@@ -180,6 +229,11 @@ export const RecognitionPanel: React.FC<RecognitionPanelProps> = ({
                   </span>
                 )}
               </div>
+            </div>
+
+            {/* Honesty disclaimer (Requirement 26) */}
+            <div className="text-[10px] text-slate-400 text-center italic">
+              AI recognition confidence — Prototype — results may vary.
             </div>
 
             {/* Action Bar for Recognized Sign */}

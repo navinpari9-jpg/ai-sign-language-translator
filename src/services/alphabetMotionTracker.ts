@@ -186,6 +186,42 @@ export class AlphabetMotionTracker {
       reason: isComplete ? 'Complete Z zig-zag trajectory verified' : 'Incomplete Z motion',
     };
   }
+
+  /**
+   * Return recent velocities of key landmarks for feature extraction
+   */
+  public getRecentVelocities(): {
+    indexTip: { vx: number; vy: number };
+    pinkyTip: { vx: number; vy: number };
+    wrist: { vx: number; vy: number };
+  } {
+    if (this.history.length < 2) {
+      return {
+        indexTip: { vx: 0, vy: 0 },
+        pinkyTip: { vx: 0, vy: 0 },
+        wrist: { vx: 0, vy: 0 },
+      };
+    }
+
+    const pCurrent = this.history[this.history.length - 1];
+    const pPrev = this.history[this.history.length - 2];
+    const dt = Math.max(1, (pCurrent.timestamp - pPrev.timestamp) / 1000);
+
+    return {
+      indexTip: {
+        vx: (pCurrent.indexTip.x - pPrev.indexTip.x) / dt,
+        vy: (pCurrent.indexTip.y - pPrev.indexTip.y) / dt,
+      },
+      pinkyTip: {
+        vx: (pCurrent.pinkyTip.x - pPrev.pinkyTip.x) / dt,
+        vy: (pCurrent.pinkyTip.y - pPrev.pinkyTip.y) / dt,
+      },
+      wrist: {
+        vx: (pCurrent.wrist.x - pPrev.wrist.x) / dt,
+        vy: (pCurrent.wrist.y - pPrev.wrist.y) / dt,
+      },
+    };
+  }
 }
 
 export const alphabetMotionTracker = new AlphabetMotionTracker(25);

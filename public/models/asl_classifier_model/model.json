@@ -32,7 +32,7 @@
             "trainable": true,
             "batch_input_shape": [
               null,
-              111
+              117
             ],
             "dtype": "float32"
           }
@@ -78,6 +78,34 @@
         {
           "class_name": "Dense",
           "config": {
+            "units": 32,
+            "activation": "relu",
+            "use_bias": true,
+            "kernel_initializer": {
+              "class_name": "VarianceScaling",
+              "config": {
+                "scale": 2,
+                "mode": "fan_in",
+                "distribution": "normal",
+                "seed": null
+              }
+            },
+            "bias_initializer": {
+              "class_name": "Zeros",
+              "config": {}
+            },
+            "kernel_regularizer": null,
+            "bias_regularizer": null,
+            "activity_regularizer": null,
+            "kernel_constraint": null,
+            "bias_constraint": null,
+            "name": "dense_Dense3",
+            "trainable": true
+          }
+        },
+        {
+          "class_name": "Dense",
+          "config": {
             "units": 37,
             "activation": "softmax",
             "use_bias": true,
@@ -99,7 +127,7 @@
             "activity_regularizer": null,
             "kernel_constraint": null,
             "bias_constraint": null,
-            "name": "dense_Dense3",
+            "name": "dense_Dense4",
             "trainable": true
           }
         }
@@ -117,7 +145,7 @@
         {
           "name": "dense_Dense1/kernel",
           "shape": [
-            111,
+            117,
             128
           ],
           "dtype": "float32"
@@ -148,12 +176,27 @@
           "name": "dense_Dense3/kernel",
           "shape": [
             64,
-            37
+            32
           ],
           "dtype": "float32"
         },
         {
           "name": "dense_Dense3/bias",
+          "shape": [
+            32
+          ],
+          "dtype": "float32"
+        },
+        {
+          "name": "dense_Dense4/kernel",
+          "shape": [
+            32,
+            37
+          ],
+          "dtype": "float32"
+        },
+        {
+          "name": "dense_Dense4/bias",
           "shape": [
             37
           ],

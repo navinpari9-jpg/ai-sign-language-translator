@@ -78,36 +78,52 @@ export class SignClassifierService {
         allCandidates[c.label] = c.probability;
       });
 
-      const isAlphabetLetter = pred.label.length === 1 && pred.label >= 'A' && pred.label <= 'Z';
+      const topCandidates = pred.candidates.slice(0, 3).map((c) => ({
+        label: c.label,
+        probability: Math.round(c.probability * 100) / 100,
+      }));
 
-      // Mode filtering
+      const isAlphabetLetter = pred.label.length === 1 && pred.label >= 'A' && pred.label <= 'Z';
+      const isAmbiguous = Boolean(pred.reason?.includes('Ambiguous'));
+
+      // Mode filtering for dedicated ALPHABET mode
       if (mode === 'ALPHABET' && !isAlphabetLetter && pred.label !== 'UNKNOWN') {
-        // If in alphabet mode but top prediction is vocabulary, filter candidates for letters
-        const alphaCandidates = pred.candidates.filter((c) => c.label.length === 1 && c.label >= 'A' && c.label <= 'Z');
+        const alphaCandidates = pred.candidates.filter(
+          (c) => c.label.length === 1 && c.label >= 'A' && c.label <= 'Z'
+        );
         const topAlpha = alphaCandidates[0];
-        if (topAlpha && topAlpha.probability >= 0.65) {
+        const secondAlpha = alphaCandidates[1];
+        const alphaMargin = topAlpha && secondAlpha ? topAlpha.probability - secondAlpha.probability : topAlpha?.probability ?? 0;
+
+        if (topAlpha && topAlpha.probability >= 0.70 && alphaMargin >= 0.10) {
           return {
             topSign: topAlpha.label,
             meaning: `ASL letter ${topAlpha.label}`,
             score: topAlpha.probability,
             signType: 'STATIC',
             allCandidates,
+            topCandidates: alphaCandidates.slice(0, 3),
+            marginDelta: alphaMargin,
             explanation: `Neural prediction (TF.js): ${topAlpha.label} (${(topAlpha.probability * 100).toFixed(0)}%)`,
             isRecognized: true,
+            isAmbiguous: false,
             mode: 'ALPHABET',
           };
         }
       }
 
-      if (!pred.isUnknown && pred.probability >= 0.65) {
+      if (!pred.isUnknown && pred.probability >= 0.70 && !isAmbiguous) {
         return {
           topSign: pred.label,
           meaning: pred.meaning || SIGN_MEANINGS[pred.label] || `ASL sign ${pred.label}`,
           score: pred.probability,
           signType: isAlphabetLetter ? 'STATIC' : 'STATIC',
           allCandidates,
+          topCandidates,
+          marginDelta: pred.marginDelta,
           explanation: `Neural prediction (TF.js): ${pred.label} (${(pred.probability * 100).toFixed(0)}%) with margin ${(pred.marginDelta * 100).toFixed(0)}%`,
           isRecognized: true,
+          isAmbiguous: false,
           mode,
         };
       }
@@ -119,8 +135,11 @@ export class SignClassifierService {
         score: pred.probability,
         signType: 'UNKNOWN',
         allCandidates,
+        topCandidates,
+        marginDelta: pred.marginDelta,
         explanation: pred.reason || 'Hand posture does not meet confidence threshold.',
         isRecognized: false,
+        isAmbiguous,
         mode,
         rejectionReason: pred.reason || 'Low neural model confidence',
       };

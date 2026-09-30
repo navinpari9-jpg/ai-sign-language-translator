@@ -172,7 +172,7 @@ export class TemporalSmoother {
     const sortedScores = Object.values(rawResult.allCandidates || {}).sort((a, b) => b - a);
     const topScore = sortedScores[0] || 0;
     const secondScore = sortedScores[1] || 0;
-    const modelMargin = Math.max(0, topScore - secondScore);
+    const modelMargin = rawResult.marginDelta ?? Math.max(0, topScore - secondScore);
 
     const confidenceFactors: ConfidenceFactors = {
       landmarkConfidence: detection.isInsideGuide ? 0.95 : 0.70,
@@ -183,18 +183,28 @@ export class TemporalSmoother {
       modelMargin,
     };
 
-    const isRecognized = majoritySign !== 'UNKNOWN' && majoritySign !== 'NO_HAND';
+    const isRecognized =
+      majoritySign !== 'UNKNOWN' &&
+      majoritySign !== 'NO_HAND' &&
+      !rawResult.isAmbiguous &&
+      rawResult.isRecognized;
+
     const confidence = confidenceCalculator.calculate(confidenceFactors, isRecognized);
 
     // Stability calculation: Requires consecutive frames and consistency
     const stabilityScore = Math.round(temporalConsistency * 100);
-    const isStable = consecutiveFrames >= this.minStableFrames && temporalConsistency >= 0.7 && isRecognized;
+    const isStable =
+      consecutiveFrames >= this.minStableFrames &&
+      temporalConsistency >= 0.7 &&
+      isRecognized &&
+      detection.isInsideGuide &&
+      detection.motionBlurScore >= 0.55;
 
     // Status assignment
     let status: 'STABLE' | 'TRANSITIONING' | 'UNKNOWN' | 'NO_HAND' = 'TRANSITIONING';
     let message = 'Hold sign steady to confirm.';
 
-    if (!isRecognized) {
+    if (!isRecognized || rawResult.isAmbiguous) {
       status = 'UNKNOWN';
       message =
         rawResult.rejectionReason ||
@@ -228,6 +238,9 @@ export class TemporalSmoother {
       fingerStates: features?.fingerStates,
       palmOrientation: features?.palmOrientation,
       candidateScores: rawResult.allCandidates,
+      topCandidates: rawResult.topCandidates,
+      marginDelta: modelMargin,
+      isAmbiguous: rawResult.isAmbiguous,
       rejectionReason: rawResult.rejectionReason,
       landmarks: detection.landmarks,
       boundingBoxes: detection.boundingBoxes,

@@ -213,18 +213,27 @@ export class HandTrackerService {
       this.lastLandmarks = primaryHand;
       this.lastTimestamp = timestampMs;
 
-      // Quality message prioritization
+      // Cropping check: if bounding box touches edge of camera view
+      const isCropped =
+        primaryBox.xMin <= 0.015 ||
+        primaryBox.xMax >= 0.985 ||
+        primaryBox.yMin <= 0.015 ||
+        primaryBox.yMax >= 0.985;
+
+      // Quality message prioritization (Requirement 11)
       let qualityMessage = 'Hand detected';
-      if (lightingScore < 0.2) {
-        qualityMessage = 'Lighting is too low';
+      if (primaryHand.length < 21 || isCropped) {
+        qualityMessage = 'Show your complete hand.';
+      } else if (lightingScore < 0.22) {
+        qualityMessage = 'Improve lighting.';
       } else if (!isInsideGuide) {
-        qualityMessage = 'Move your hand into the guide box';
-      } else if (handSizeRatio < 0.04) {
-        qualityMessage = 'Move slightly closer';
-      } else if (handSizeRatio > 0.65) {
-        qualityMessage = 'Move slightly back';
+        qualityMessage = 'Move your hand into the box.';
+      } else if (handSizeRatio > 0.60) {
+        qualityMessage = 'Move your hand slightly farther away.';
+      } else if (handSizeRatio < 0.035) {
+        qualityMessage = 'Move closer to the camera.';
       } else if (motionBlurScore < 0.55) {
-        qualityMessage = 'Hold your hand steady';
+        qualityMessage = 'Hold the sign steady.';
       }
 
       return {

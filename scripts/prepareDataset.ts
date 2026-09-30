@@ -64,17 +64,41 @@ export function generateHandPose(
 
   // 1-4: Thumb
   if (config.thumbCrossing) {
-    // Crossed across curled fingers (e.g. S)
-    pts.push({ x: 0.48 + rand(), y: baseY - 0.08 * scale + rand(), z: 0.01 });
+    // Crossed horizontally across curled fingers (e.g. S)
+    pts.push({ x: 0.48 + rand(), y: baseY - 0.08 * scale + rand(), z: 0.02 });
     pts.push({ x: 0.52 + rand(), y: baseY - 0.14 * scale + rand(), z: 0.04 });
-    pts.push({ x: 0.56 + rand(), y: baseY - 0.18 * scale + rand(), z: 0.06 });
-    pts.push({ x: 0.58 + rand(), y: baseY - 0.20 * scale + rand(), z: 0.07 });
+    pts.push({ x: 0.54 + rand(), y: baseY - 0.17 * scale + rand(), z: 0.06 });
+    pts.push({ x: 0.56 + rand(), y: baseY - 0.18 * scale + rand(), z: 0.07 });
   } else if (config.thumbAlongside) {
     // Upright alongside index MCP (e.g. A)
-    pts.push({ x: 0.46 + rand(), y: baseY - 0.08 * scale + rand(), z: 0 });
-    pts.push({ x: 0.44 + rand(), y: baseY - 0.14 * scale + rand(), z: 0.01 });
-    pts.push({ x: 0.43 + rand(), y: baseY - 0.21 * scale + rand(), z: 0.02 });
-    pts.push({ x: 0.43 + rand(), y: baseY - 0.28 * scale + rand(), z: 0.02 });
+    pts.push({ x: 0.45 + rand(), y: baseY - 0.08 * scale + rand(), z: 0 });
+    pts.push({ x: 0.43 + rand(), y: baseY - 0.14 * scale + rand(), z: 0.01 });
+    pts.push({ x: 0.42 + rand(), y: baseY - 0.21 * scale + rand(), z: 0.02 });
+    pts.push({ x: 0.42 + rand(), y: baseY - 0.28 * scale + rand(), z: 0.02 });
+  } else if (config.thumbTuckedIndex) {
+    // Tucked under index only, peeking between index and middle (e.g. T)
+    pts.push({ x: 0.47 + rand(), y: baseY - 0.08 * scale + rand(), z: 0.01 });
+    pts.push({ x: 0.48 + rand(), y: baseY - 0.14 * scale + rand(), z: 0.03 });
+    pts.push({ x: 0.48 + rand(), y: baseY - 0.20 * scale + rand(), z: 0.05 });
+    pts.push({ x: 0.48 + rand(), y: baseY - 0.24 * scale + rand(), z: 0.05 });
+  } else if (config.thumbTuckedMiddle) {
+    // Tucked under index and middle, peeking between middle and ring (e.g. N)
+    pts.push({ x: 0.48 + rand(), y: baseY - 0.08 * scale + rand(), z: 0.01 });
+    pts.push({ x: 0.50 + rand(), y: baseY - 0.14 * scale + rand(), z: 0.03 });
+    pts.push({ x: 0.52 + rand(), y: baseY - 0.19 * scale + rand(), z: 0.05 });
+    pts.push({ x: 0.52 + rand(), y: baseY - 0.22 * scale + rand(), z: 0.06 });
+  } else if (config.thumbTuckedRing) {
+    // Tucked under index, middle, ring, peeking between ring and pinky (e.g. M)
+    pts.push({ x: 0.48 + rand(), y: baseY - 0.08 * scale + rand(), z: 0.01 });
+    pts.push({ x: 0.52 + rand(), y: baseY - 0.13 * scale + rand(), z: 0.03 });
+    pts.push({ x: 0.55 + rand(), y: baseY - 0.17 * scale + rand(), z: 0.05 });
+    pts.push({ x: 0.56 + rand(), y: baseY - 0.20 * scale + rand(), z: 0.06 });
+  } else if (config.fingertipsTuckedOnThumb) {
+    // Thumb resting horizontally below tightly curled fingertips (e.g. E)
+    pts.push({ x: 0.47 + rand(), y: baseY - 0.07 * scale + rand(), z: 0.01 });
+    pts.push({ x: 0.49 + rand(), y: baseY - 0.11 * scale + rand(), z: 0.02 });
+    pts.push({ x: 0.52 + rand(), y: baseY - 0.13 * scale + rand(), z: 0.03 });
+    pts.push({ x: 0.54 + rand(), y: baseY - 0.14 * scale + rand(), z: 0.03 });
   } else {
     // Normal thumb extension / angle
     pts.push({ x: 0.46 + rand(), y: baseY - 0.08 * scale + rand(), z: 0 });
@@ -145,26 +169,26 @@ export function buildDataset(): LabeledSample[] {
     A: { extensions: [0.95, 0.15, 0.15, 0.15, 0.15], config: { thumbAlongside: true } },
     B: { extensions: [0.1, 1.0, 1.0, 1.0, 1.0], config: { thumbCrossing: true } },
     C: { extensions: [0.55, 0.55, 0.55, 0.55, 0.55], config: { thumbSpread: 0.3 } },
-    D: { extensions: [0.3, 1.0, 0.15, 0.15, 0.15], config: { thumbCrossing: false } },
-    E: { extensions: [0.15, 0.25, 0.25, 0.25, 0.25], config: { thumbCrossing: false } },
-    F: { extensions: [0.4, 0.3, 1.0, 1.0, 1.0], config: { indexMiddleSpread: 0.05 } },
-    G: { extensions: [0.85, 0.95, 0.1, 0.1, 0.1], config: { tiltAngleRad: 0.7 } },
-    H: { extensions: [0.15, 0.95, 0.95, 0.1, 0.1], config: { tiltAngleRad: 0.7 } },
+    D: { extensions: [0.35, 1.0, 0.15, 0.15, 0.15], config: { thumbCrossing: false, thumbSpread: 0.25 } },
+    E: { extensions: [0.15, 0.15, 0.15, 0.15, 0.15], config: { fingertipsTuckedOnThumb: true } },
+    F: { extensions: [0.35, 0.2, 1.0, 1.0, 1.0], config: { indexMiddleSpread: 0.05, thumbSpread: 0.2 } },
+    G: { extensions: [0.85, 0.95, 0.1, 0.1, 0.1], config: { tiltAngleRad: 0.8, thumbSpread: 0.15 } },
+    H: { extensions: [0.15, 0.95, 0.95, 0.1, 0.1], config: { tiltAngleRad: 0.8, indexMiddleSpread: 0.01 } },
     I: { extensions: [0.15, 0.15, 0.15, 0.15, 1.0], config: { thumbCrossing: true } },
-    K: { extensions: [0.9, 1.0, 1.0, 0.15, 0.15], config: { indexMiddleSpread: 0.06 } },
-    L: { extensions: [1.0, 1.0, 0.15, 0.15, 0.15], config: { thumbSpread: 0.6 } },
-    M: { extensions: [0.2, 0.2, 0.2, 0.2, 0.15], config: { thumbCrossing: true } },
-    N: { extensions: [0.2, 0.2, 0.2, 0.15, 0.15], config: { thumbCrossing: true } },
+    K: { extensions: [0.9, 1.0, 0.8, 0.15, 0.15], config: { indexMiddleSpread: 0.05, thumbSpread: 0.3 } },
+    L: { extensions: [1.0, 1.0, 0.15, 0.15, 0.15], config: { thumbSpread: 0.65 } },
+    M: { extensions: [0.2, 0.15, 0.15, 0.15, 0.15], config: { thumbTuckedRing: true } },
+    N: { extensions: [0.2, 0.15, 0.15, 0.15, 0.15], config: { thumbTuckedMiddle: true } },
     O: { extensions: [0.4, 0.35, 0.35, 0.35, 0.35], config: { thumbSpread: 0.2 } },
-    P: { extensions: [0.8, 0.95, 0.95, 0.15, 0.15], config: { tiltAngleRad: 2.2 } },
-    Q: { extensions: [0.85, 0.95, 0.1, 0.1, 0.1], config: { tiltAngleRad: 2.2 } },
+    P: { extensions: [0.8, 0.95, 0.95, 0.15, 0.15], config: { tiltAngleRad: 1.8 } },
+    Q: { extensions: [0.85, 0.95, 0.1, 0.1, 0.1], config: { tiltAngleRad: 1.8 } },
     R: { extensions: [0.15, 0.95, 0.95, 0.15, 0.15], config: { indexMiddleSpread: -0.04 } },
     S: { extensions: [0.1, 0.1, 0.1, 0.1, 0.1], config: { thumbCrossing: true } },
-    T: { extensions: [0.4, 0.15, 0.15, 0.15, 0.15], config: { thumbAlongside: true } },
+    T: { extensions: [0.35, 0.15, 0.15, 0.15, 0.15], config: { thumbTuckedIndex: true } },
     U: { extensions: [0.15, 1.0, 1.0, 0.15, 0.15], config: { indexMiddleSpread: 0.0 } },
     V: { extensions: [0.15, 1.0, 1.0, 0.15, 0.15], config: { indexMiddleSpread: 0.07 } },
-    W: { extensions: [0.2, 1.0, 1.0, 1.0, 0.15], config: { indexMiddleSpread: 0.04 } },
-    X: { extensions: [0.2, 0.5, 0.15, 0.15, 0.15], config: { indexHook: true } },
+    W: { extensions: [0.2, 1.0, 1.0, 1.0, 0.15], config: { indexMiddleSpread: 0.05 } },
+    X: { extensions: [0.2, 0.5, 0.15, 0.15, 0.15], config: { indexHook: true, thumbCrossing: true } },
     Y: { extensions: [1.0, 0.15, 0.15, 0.15, 1.0], config: { thumbSpread: 0.6 } },
   };
 
@@ -184,17 +208,36 @@ export function buildDataset(): LabeledSample[] {
     PEACE: { extensions: [0.15, 1.0, 1.0, 0.15, 0.15], config: { indexMiddleSpread: 0.06 } },
   };
 
-  // Multi-user augmentation parameters: 8 variations per sign
-  const variations = [
-    { scale: 0.85, tilt: -0.12, jitter: 0.008, wristY: 0.82 },
-    { scale: 1.0, tilt: 0.0, jitter: 0.005, wristY: 0.80 },
-    { scale: 1.15, tilt: 0.12, jitter: 0.009, wristY: 0.78 },
-    { scale: 0.90, tilt: 0.05, jitter: 0.007, wristY: 0.81 },
-    { scale: 1.10, tilt: -0.06, jitter: 0.008, wristY: 0.79 },
-    { scale: 0.95, tilt: 0.18, jitter: 0.010, wristY: 0.83 },
-    { scale: 1.05, tilt: -0.16, jitter: 0.007, wristY: 0.77 },
-    { scale: 1.0, tilt: 0.02, jitter: 0.012, wristY: 0.80 },
-  ];
+  // 32 Multi-user variations per sign: diverse scales, tilts, jitter, and wrist heights
+  const variations: Array<{ scale: number; tilt: number; jitter: number; wristY: number }> = [];
+  const scaleList = [0.82, 0.92, 1.0, 1.08, 1.18];
+  const tiltList = [-0.18, -0.08, 0, 0.08, 0.18];
+  const jitterList = [0.005, 0.009];
+  const wristYList = [0.78, 0.81];
+
+  let vCount = 0;
+  for (const s of scaleList) {
+    for (const t of tiltList) {
+      if (vCount >= 32) break;
+      variations.push({
+        scale: s,
+        tilt: t,
+        jitter: jitterList[vCount % jitterList.length],
+        wristY: wristYList[vCount % wristYList.length],
+      });
+      vCount++;
+    }
+    if (vCount >= 32) break;
+  }
+  // Fill remaining to exactly 32
+  while (variations.length < 32) {
+    variations.push({
+      scale: 1.0 + (Math.random() - 0.5) * 0.3,
+      tilt: (Math.random() - 0.5) * 0.35,
+      jitter: 0.008,
+      wristY: 0.80 + (Math.random() - 0.5) * 0.06,
+    });
+  }
 
   // 1. Generate Alphabet A-Z samples
   for (const [letter, base] of Object.entries(alphabetBases)) {
@@ -248,10 +291,14 @@ export function buildDataset(): LabeledSample[] {
     [0.6, 0.6, 0.6, 0.6, 0.1], // Pinky folded, rest loose
     [0.3, 0.7, 0.2, 0.8, 0.1], // Non-standard claw
     [0.5, 0.5, 0.1, 0.5, 0.5], // Arbitrary relaxed pose
+    [0.2, 0.8, 0.8, 0.2, 0.8], // Non-sign scissor
+    [0.7, 0.3, 0.6, 0.2, 0.5], // Loose waving hand
+    [0.4, 0.4, 0.4, 0.4, 0.4], // Semi-clenched resting hand
+    [0.1, 0.2, 0.3, 0.4, 0.5], // Cascading relaxed fingers
   ];
 
   unknownPoses.forEach((ext, i) => {
-    variations.slice(0, 4).forEach((v, idx) => {
+    variations.slice(0, 12).forEach((v, idx) => {
       const landmarks = generateHandPose(ext, {
         handScale: v.scale,
         tiltAngleRad: v.tilt,

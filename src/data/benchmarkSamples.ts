@@ -12,6 +12,11 @@ function createSyntheticLandmarks(
     wristY?: number;
     indexHook?: boolean;
     thumbCrossing?: boolean;
+    thumbAlongside?: boolean;
+    thumbTuckedIndex?: boolean;
+    thumbTuckedMiddle?: boolean;
+    thumbTuckedRing?: boolean;
+    fingertipsTuckedOnThumb?: boolean;
   } = {}
 ): HandLandmarks {
   const [thumbExt, indexExt, midExt, ringExt, pinkyExt] = fingerExtensions;
@@ -27,11 +32,41 @@ function createSyntheticLandmarks(
 
   // 1-4: Thumb
   if (options.thumbCrossing) {
-    // Thumb crossed across palm horizontally
-    pts.push({ x: 0.48, y: baseY - 0.08, z: 0 });
-    pts.push({ x: 0.52, y: baseY - 0.14, z: 0.05 });
-    pts.push({ x: 0.56, y: baseY - 0.18, z: 0.08 });
-    pts.push({ x: 0.60, y: baseY - 0.20, z: 0.08 });
+    // Thumb crossed across palm horizontally (e.g. S)
+    pts.push({ x: 0.48, y: baseY - 0.08, z: 0.02 });
+    pts.push({ x: 0.52, y: baseY - 0.14, z: 0.04 });
+    pts.push({ x: 0.54, y: baseY - 0.17, z: 0.06 });
+    pts.push({ x: 0.56, y: baseY - 0.18, z: 0.07 });
+  } else if (options.thumbAlongside) {
+    // Thumb alongside index MCP upright (e.g. A)
+    pts.push({ x: 0.45, y: baseY - 0.08, z: 0 });
+    pts.push({ x: 0.43, y: baseY - 0.14, z: 0.01 });
+    pts.push({ x: 0.42, y: baseY - 0.21, z: 0.02 });
+    pts.push({ x: 0.42, y: baseY - 0.28, z: 0.02 });
+  } else if (options.thumbTuckedIndex) {
+    // Thumb tucked between index and middle (e.g. T)
+    pts.push({ x: 0.47, y: baseY - 0.08, z: 0.01 });
+    pts.push({ x: 0.48, y: baseY - 0.14, z: 0.03 });
+    pts.push({ x: 0.48, y: baseY - 0.20, z: 0.05 });
+    pts.push({ x: 0.48, y: baseY - 0.24, z: 0.05 });
+  } else if (options.thumbTuckedMiddle) {
+    // Thumb tucked under index and middle (e.g. N)
+    pts.push({ x: 0.48, y: baseY - 0.08, z: 0.01 });
+    pts.push({ x: 0.50, y: baseY - 0.14, z: 0.03 });
+    pts.push({ x: 0.52, y: baseY - 0.19, z: 0.05 });
+    pts.push({ x: 0.52, y: baseY - 0.22, z: 0.06 });
+  } else if (options.thumbTuckedRing) {
+    // Thumb tucked under index, middle, ring (e.g. M)
+    pts.push({ x: 0.48, y: baseY - 0.08, z: 0.01 });
+    pts.push({ x: 0.52, y: baseY - 0.13, z: 0.03 });
+    pts.push({ x: 0.55, y: baseY - 0.17, z: 0.05 });
+    pts.push({ x: 0.56, y: baseY - 0.20, z: 0.06 });
+  } else if (options.fingertipsTuckedOnThumb) {
+    // Thumb tucked horizontally below curled fingertips (e.g. E)
+    pts.push({ x: 0.47, y: baseY - 0.07, z: 0.01 });
+    pts.push({ x: 0.49, y: baseY - 0.11, z: 0.02 });
+    pts.push({ x: 0.52, y: baseY - 0.13, z: 0.03 });
+    pts.push({ x: 0.54, y: baseY - 0.14, z: 0.03 });
   } else {
     // Standard thumb spreading out
     pts.push({ x: 0.45, y: baseY - 0.08, z: 0 });
@@ -56,7 +91,7 @@ function createSyntheticLandmarks(
   pts.push({ x: midBaseX, y: baseY - 0.24, z: 0 });
   pts.push({ x: midBaseX, y: baseY - 0.32, z: 0 });
   pts.push({ x: midBaseX, y: baseY - 0.40, z: 0 });
-  pts.push({ x: midBaseX, y: baseY - 0.24 - midExt * 0.37, z: 0 });
+  pts.push({ x: midBaseX, y: baseY - 0.24 - midExt * 0.37, z: options.indexMiddleSpread && options.indexMiddleSpread < 0 ? 0.04 : 0 });
 
   // 13-16: Ring
   pts.push({ x: 0.54, y: baseY - 0.22, z: 0 });
@@ -267,6 +302,26 @@ export const BENCHMARK_SAMPLES: BenchmarkSample[] = [
     landmarks: createSyntheticLandmarks([1.0, 1.0, 0.2, 0.2, 0.2], { thumbSpread: 0.7 }),
   },
   {
+    id: 'alpha-m',
+    name: 'ASL Letter M',
+    expectedSign: 'M',
+    description: 'Thumb tucked under index, middle, ring fingers; peeking at pinky.',
+    category: 'ALPHABET',
+    type: 'STATIC',
+    expectedOrientation: 'facing_camera',
+    landmarks: createSyntheticLandmarks([0.2, 0.15, 0.15, 0.15, 0.15], { thumbTuckedRing: true }),
+  },
+  {
+    id: 'alpha-n',
+    name: 'ASL Letter N',
+    expectedSign: 'N',
+    description: 'Thumb tucked under index and middle fingers; peeking between middle and ring.',
+    category: 'ALPHABET',
+    type: 'STATIC',
+    expectedOrientation: 'facing_camera',
+    landmarks: createSyntheticLandmarks([0.2, 0.15, 0.15, 0.15, 0.15], { thumbTuckedMiddle: true }),
+  },
+  {
     id: 'alpha-o',
     name: 'ASL Letter O',
     expectedSign: 'O',
@@ -277,6 +332,36 @@ export const BENCHMARK_SAMPLES: BenchmarkSample[] = [
     landmarks: createSyntheticLandmarks([0.4, 0.35, 0.35, 0.35, 0.35]),
   },
   {
+    id: 'alpha-p',
+    name: 'ASL Letter P',
+    expectedSign: 'P',
+    description: 'K-handshape pointing downward toward the floor.',
+    category: 'ALPHABET',
+    type: 'STATIC',
+    expectedOrientation: 'down',
+    landmarks: createSyntheticLandmarks([0.8, 0.95, 0.95, 0.15, 0.15], { tiltAngleRad: 1.8 }),
+  },
+  {
+    id: 'alpha-q',
+    name: 'ASL Letter Q',
+    expectedSign: 'Q',
+    description: 'G-handshape pointing downward toward the floor.',
+    category: 'ALPHABET',
+    type: 'STATIC',
+    expectedOrientation: 'down',
+    landmarks: createSyntheticLandmarks([0.85, 0.95, 0.1, 0.1, 0.1], { tiltAngleRad: 1.8 }),
+  },
+  {
+    id: 'alpha-r',
+    name: 'ASL Letter R',
+    expectedSign: 'R',
+    description: 'Index and middle fingers crossed like good-luck fingers.',
+    category: 'ALPHABET',
+    type: 'STATIC',
+    expectedOrientation: 'facing_camera',
+    landmarks: createSyntheticLandmarks([0.15, 0.95, 0.95, 0.15, 0.15], { indexMiddleSpread: -0.04 }),
+  },
+  {
     id: 'alpha-s',
     name: 'ASL Letter S',
     expectedSign: 'S',
@@ -285,6 +370,16 @@ export const BENCHMARK_SAMPLES: BenchmarkSample[] = [
     type: 'STATIC',
     expectedOrientation: 'facing_camera',
     landmarks: createSyntheticLandmarks([0.2, 0.2, 0.2, 0.2, 0.2], { thumbCrossing: true }),
+  },
+  {
+    id: 'alpha-t',
+    name: 'ASL Letter T',
+    expectedSign: 'T',
+    description: 'Thumb tucked under index finger only, peeking between index and middle.',
+    category: 'ALPHABET',
+    type: 'STATIC',
+    expectedOrientation: 'facing_camera',
+    landmarks: createSyntheticLandmarks([0.35, 0.15, 0.15, 0.15, 0.15], { thumbTuckedIndex: true }),
   },
   {
     id: 'alpha-u',

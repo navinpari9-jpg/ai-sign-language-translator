@@ -23,11 +23,18 @@ export async function trainAndExportASLModel(): Promise<void> {
   const numClasses = classes.length;
   console.log(`Features dimension: ${numFeatures}, Classes count: ${numClasses}`);
 
-  // 2. Prepare Tensors
+  // 2. Shuffle dataset samples for proper train/val split
+  const shuffledSamples = [...dataset.samples];
+  for (let i = shuffledSamples.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledSamples[i], shuffledSamples[j]] = [shuffledSamples[j], shuffledSamples[i]];
+  }
+
+  // Prepare Tensors
   const xData: number[][] = [];
   const yData: number[][] = [];
 
-  dataset.samples.forEach((s) => {
+  shuffledSamples.forEach((s) => {
     xData.push(s.features);
     // One-hot encode label
     const oneHot = new Array(numClasses).fill(0);
@@ -63,6 +70,15 @@ export async function trainAndExportASLModel(): Promise<void> {
     })
   );
 
+  // Layer 4: Dense 32 + ReLU
+  model.add(
+    tf.layers.dense({
+      units: 32,
+      activation: 'relu',
+      kernelInitializer: 'heNormal',
+    })
+  );
+
   // Output Layer: Dense Softmax across all ASL & Vocabulary classes
   model.add(
     tf.layers.dense({
@@ -72,7 +88,7 @@ export async function trainAndExportASLModel(): Promise<void> {
   );
 
   model.compile({
-    optimizer: tf.train.adam(0.003),
+    optimizer: tf.train.adam(0.002),
     loss: 'categoricalCrossentropy',
     metrics: ['accuracy'],
   });
@@ -80,14 +96,14 @@ export async function trainAndExportASLModel(): Promise<void> {
   // 4. Train
   console.log('Training neural network...');
   await model.fit(xTensor, yTensor, {
-    epochs: 35,
+    epochs: 45,
     batchSize: 32,
     shuffle: true,
-    validationSplit: 0.2,
+    validationSplit: 0.15,
     verbose: 0,
     callbacks: {
       onEpochEnd: (epoch, logs) => {
-        if ((epoch + 1) % 10 === 0 || epoch === 34) {
+        if ((epoch + 1) % 10 === 0 || epoch === 44) {
           console.log(
             `Epoch ${epoch + 1}: Loss = ${logs?.loss?.toFixed(4)}, Acc = ${(
               (logs?.acc ?? 0) * 100

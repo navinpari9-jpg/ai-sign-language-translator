@@ -67,7 +67,13 @@ export function normalizeLandmarks(landmarks: HandLandmarks): HandLandmarks {
 
   const wrist = landmarks[LANDMARK_INDEX.WRIST];
   const middleMcp = landmarks[LANDMARK_INDEX.MIDDLE_MCP];
-  const palmScale = distance3D(wrist, middleMcp) || 1.0;
+  const indexMcp = landmarks[LANDMARK_INDEX.INDEX_MCP];
+  const pinkyMcp = landmarks[LANDMARK_INDEX.PINKY_MCP];
+
+  const palmHeight = distance3D(wrist, middleMcp);
+  const palmWidth = distance3D(indexMcp, pinkyMcp);
+  // Palm scale: prioritize stable palm height, with fallback to width
+  const palmScale = palmHeight > 0.02 ? palmHeight : palmWidth > 0.02 ? palmWidth : 1.0;
 
   return landmarks.map((pt) => ({
     x: (pt.x - wrist.x) / palmScale,
@@ -212,7 +218,12 @@ export function determineFingerState(foldRatio: number, isExt: boolean, jointAng
  */
 export function extractFeaturesFromLandmarks(
   landmarks: HandLandmarks,
-  secondHandLandmarks?: HandLandmarks
+  secondHandLandmarks?: HandLandmarks,
+  motionVelocities?: {
+    indexTip?: { vx: number; vy: number };
+    pinkyTip?: { vx: number; vy: number };
+    wrist?: { vx: number; vy: number };
+  }
 ): ExtractedGestureFeatures {
   const norm = normalizeLandmarks(landmarks);
   const wrist = landmarks[LANDMARK_INDEX.WRIST];
@@ -220,7 +231,9 @@ export function extractFeaturesFromLandmarks(
   const indexMcp = landmarks[LANDMARK_INDEX.INDEX_MCP];
   const pinkyMcp = landmarks[LANDMARK_INDEX.PINKY_MCP];
 
-  const palmScale = distance3D(wrist, middleMcp) || 0.1;
+  const palmHeight = distance3D(wrist, middleMcp);
+  const palmWidth = distance3D(indexMcp, pinkyMcp);
+  const palmScale = palmHeight > 0.02 ? palmHeight : palmWidth > 0.02 ? palmWidth : 1.0;
 
   // Finger extension booleans
   const fingersExtended = {
@@ -251,12 +264,25 @@ export function extractFeaturesFromLandmarks(
 
   // Joint Angles
   const jointAngles = {
+    thumbCmc: getJointAngle(norm, LANDMARK_INDEX.WRIST, LANDMARK_INDEX.THUMB_CMC, LANDMARK_INDEX.THUMB_MCP),
     thumbMcp: getJointAngle(norm, LANDMARK_INDEX.THUMB_CMC, LANDMARK_INDEX.THUMB_MCP, LANDMARK_INDEX.THUMB_IP),
     thumbIp: getJointAngle(norm, LANDMARK_INDEX.THUMB_MCP, LANDMARK_INDEX.THUMB_IP, LANDMARK_INDEX.THUMB_TIP),
+    indexMcp: getJointAngle(norm, LANDMARK_INDEX.WRIST, LANDMARK_INDEX.INDEX_MCP, LANDMARK_INDEX.INDEX_PIP),
     indexPip: getJointAngle(norm, LANDMARK_INDEX.INDEX_MCP, LANDMARK_INDEX.INDEX_PIP, LANDMARK_INDEX.INDEX_TIP),
+    middleMcp: getJointAngle(norm, LANDMARK_INDEX.WRIST, LANDMARK_INDEX.MIDDLE_MCP, LANDMARK_INDEX.MIDDLE_PIP),
     middlePip: getJointAngle(norm, LANDMARK_INDEX.MIDDLE_MCP, LANDMARK_INDEX.MIDDLE_PIP, LANDMARK_INDEX.MIDDLE_TIP),
+    ringMcp: getJointAngle(norm, LANDMARK_INDEX.WRIST, LANDMARK_INDEX.RING_MCP, LANDMARK_INDEX.RING_PIP),
     ringPip: getJointAngle(norm, LANDMARK_INDEX.RING_MCP, LANDMARK_INDEX.RING_PIP, LANDMARK_INDEX.RING_TIP),
+    pinkyMcp: getJointAngle(norm, LANDMARK_INDEX.WRIST, LANDMARK_INDEX.PINKY_MCP, LANDMARK_INDEX.PINKY_PIP),
     pinkyPip: getJointAngle(norm, LANDMARK_INDEX.PINKY_MCP, LANDMARK_INDEX.PINKY_PIP, LANDMARK_INDEX.PINKY_TIP),
+  };
+
+  // Additional DIP angles for higher geometric resolution
+  const dipJointAngles = {
+    indexDip: getJointAngle(norm, LANDMARK_INDEX.INDEX_PIP, LANDMARK_INDEX.INDEX_DIP, LANDMARK_INDEX.INDEX_TIP),
+    middleDip: getJointAngle(norm, LANDMARK_INDEX.MIDDLE_PIP, LANDMARK_INDEX.MIDDLE_DIP, LANDMARK_INDEX.MIDDLE_TIP),
+    ringDip: getJointAngle(norm, LANDMARK_INDEX.RING_PIP, LANDMARK_INDEX.RING_DIP, LANDMARK_INDEX.RING_TIP),
+    pinkyDip: getJointAngle(norm, LANDMARK_INDEX.PINKY_PIP, LANDMARK_INDEX.PINKY_DIP, LANDMARK_INDEX.PINKY_TIP),
   };
 
   // Ternary finger states
@@ -294,19 +320,11 @@ export function extractFeaturesFromLandmarks(
     ringPinky: distance3D(norm[LANDMARK_INDEX.RING_TIP], norm[LANDMARK_INDEX.PINKY_TIP]),
   };
 
-  // Additional DIP angles for higher geometric resolution
-  const dipJointAngles = {
-    indexDip: getJointAngle(norm, LANDMARK_INDEX.INDEX_PIP, LANDMARK_INDEX.INDEX_DIP, LANDMARK_INDEX.INDEX_TIP),
-    middleDip: getJointAngle(norm, LANDMARK_INDEX.MIDDLE_PIP, LANDMARK_INDEX.MIDDLE_DIP, LANDMARK_INDEX.MIDDLE_TIP),
-    ringDip: getJointAngle(norm, LANDMARK_INDEX.RING_PIP, LANDMARK_INDEX.RING_DIP, LANDMARK_INDEX.RING_TIP),
-    pinkyDip: getJointAngle(norm, LANDMARK_INDEX.PINKY_PIP, LANDMARK_INDEX.PINKY_DIP, LANDMARK_INDEX.PINKY_TIP),
-  };
-
-  // Palm Center (average of wrist, index MCP, pinky MCP)
+  // Palm Center (average of wrist, index MCP, middle MCP, pinky MCP)
   const palmCenter: Landmark3D = {
-    x: (norm[LANDMARK_INDEX.WRIST].x + norm[LANDMARK_INDEX.INDEX_MCP].x + norm[LANDMARK_INDEX.PINKY_MCP].x) / 3,
-    y: (norm[LANDMARK_INDEX.WRIST].y + norm[LANDMARK_INDEX.INDEX_MCP].y + norm[LANDMARK_INDEX.PINKY_MCP].y) / 3,
-    z: ((norm[LANDMARK_INDEX.WRIST].z || 0) + (norm[LANDMARK_INDEX.INDEX_MCP].z || 0) + (norm[LANDMARK_INDEX.PINKY_MCP].z || 0)) / 3,
+    x: (norm[LANDMARK_INDEX.WRIST].x + norm[LANDMARK_INDEX.INDEX_MCP].x + norm[LANDMARK_INDEX.MIDDLE_MCP].x + norm[LANDMARK_INDEX.PINKY_MCP].x) / 4,
+    y: (norm[LANDMARK_INDEX.WRIST].y + norm[LANDMARK_INDEX.INDEX_MCP].y + norm[LANDMARK_INDEX.MIDDLE_MCP].y + norm[LANDMARK_INDEX.PINKY_MCP].y) / 4,
+    z: ((norm[LANDMARK_INDEX.WRIST].z || 0) + (norm[LANDMARK_INDEX.INDEX_MCP].z || 0) + (norm[LANDMARK_INDEX.MIDDLE_MCP].z || 0) + (norm[LANDMARK_INDEX.PINKY_MCP].z || 0)) / 4,
   };
 
   // Fingertip-to-Palm Distances
@@ -369,7 +387,20 @@ export function extractFeaturesFromLandmarks(
     twoHandDistance = distance3D(wrist, secondWrist) / palmScale;
   }
 
-  // Construct comprehensive 111-element normalized numerical feature vector
+  // Disambiguation features for visually similar signs (A vs S vs E vs T vs M vs N, U vs V vs R, X):
+  const thumbToIndexPip = distance3D(norm[LANDMARK_INDEX.THUMB_TIP], norm[LANDMARK_INDEX.INDEX_PIP]);
+  const thumbToMiddlePip = distance3D(norm[LANDMARK_INDEX.THUMB_TIP], norm[LANDMARK_INDEX.MIDDLE_PIP]);
+  const indexMiddleDeltaX = norm[LANDMARK_INDEX.INDEX_TIP].x - norm[LANDMARK_INDEX.MIDDLE_TIP].x;
+  const thumbRelIndexMcpX = norm[LANDMARK_INDEX.THUMB_TIP].x - norm[LANDMARK_INDEX.INDEX_MCP].x;
+  const indexHookAngle = calculateAngleDeg(norm[LANDMARK_INDEX.INDEX_MCP], norm[LANDMARK_INDEX.INDEX_PIP], norm[LANDMARK_INDEX.INDEX_TIP]) / 180;
+  const avgCurledDist =
+    (fingertipToPalmDistances.index +
+      fingertipToPalmDistances.middle +
+      fingertipToPalmDistances.ring +
+      fingertipToPalmDistances.pinky) /
+    4;
+
+  // Construct comprehensive 117-element normalized numerical feature vector
   const rawFeatureVector: number[] = [];
 
   // 1. 21 Landmarks x 3 = 63 values
@@ -432,7 +463,17 @@ export function extractFeaturesFromLandmarks(
     fingertipDistances.ringPinky
   );
 
-  // 7. Orientation & Normal features = 5 values
+  // 7. Disambiguation features = 6 values
+  rawFeatureVector.push(
+    thumbToIndexPip,
+    thumbToMiddlePip,
+    indexMiddleDeltaX,
+    thumbRelIndexMcpX,
+    indexHookAngle,
+    avgCurledDist
+  );
+
+  // 8. Orientation & Normal features = 5 values
   rawFeatureVector.push(
     normalX / normalMag,
     normalY / normalMag,
@@ -441,14 +482,21 @@ export function extractFeaturesFromLandmarks(
     isThumbCrossedOver ? 1 : 0
   );
 
-  // 8. Relational / Multi-hand = 2 values
+  // 9. Relational / Multi-hand = 2 values
   rawFeatureVector.push(
     wristToMiddleRatio,
     twoHandDistance ?? 0
   );
 
-  // 9. Motion slots (velocity / direction - filled from tracker) = 6 values
-  rawFeatureVector.push(0, 0, 0, 0, 0, 0);
+  // 10. Motion slots (velocity / direction) = 6 values
+  rawFeatureVector.push(
+    motionVelocities?.indexTip?.vx ?? 0,
+    motionVelocities?.indexTip?.vy ?? 0,
+    motionVelocities?.pinkyTip?.vx ?? 0,
+    motionVelocities?.pinkyTip?.vy ?? 0,
+    motionVelocities?.wrist?.vx ?? 0,
+    motionVelocities?.wrist?.vy ?? 0
+  );
 
   return {
     fingersExtended,
@@ -456,6 +504,9 @@ export function extractFeaturesFromLandmarks(
     fingerFoldRatios,
     fingerExtensionRatios,
     jointAngles,
+    palmCenter,
+    palmWidth: palmWidth / palmScale,
+    palmHeight: palmHeight / palmScale,
     palmOrientation,
     wristTiltAngleDeg,
     wristToMiddleRatio,

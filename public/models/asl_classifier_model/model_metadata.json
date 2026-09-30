@@ -2,7 +2,7 @@
   "modelName": "ASL Neural Classifier (TF.js)",
   "version": "4.0.0-deep-asl",
   "isTrainedModel": true,
-  "inputShape": "[1, 111]",
+  "inputShape": "[1, 117]",
   "classesCount": 37,
   "classes": [
     "UNKNOWN",
@@ -43,6 +43,6 @@
     "Y",
     "YES"
   ],
-  "trainedAt": "2026-09-29T14:11:59.947Z",
-  "trainingSamplesCount": 312
+  "trainedAt": "2026-09-30T14:54:31.949Z",
+  "trainingSamplesCount": 1272
 }

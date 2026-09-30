@@ -88,9 +88,18 @@ export class TFJSModelClassifier implements ISignClassifier {
     }
 
     try {
-      // 1. Run inference wrapped in tf.tidy to avoid WebGL / CPU memory leaks
+      // 1. Safe vector dimension matching (handles model input shape dynamically)
+      const expectedDim = (this.model!.inputs[0]?.shape?.[1] as number) || features.rawFeatureVector.length;
+      let inputVec = features.rawFeatureVector;
+      if (inputVec.length < expectedDim) {
+        inputVec = [...inputVec, ...new Array(expectedDim - inputVec.length).fill(0)];
+      } else if (inputVec.length > expectedDim) {
+        inputVec = inputVec.slice(0, expectedDim);
+      }
+
+      // Run inference wrapped in tf.tidy to avoid WebGL / CPU memory leaks
       const probabilities = tf.tidy(() => {
-        const inputTensor = tf.tensor2d([features.rawFeatureVector], [1, features.rawFeatureVector.length]);
+        const inputTensor = tf.tensor2d([inputVec], [1, expectedDim]);
         const output = this.model!.predict(inputTensor) as tf.Tensor;
         return Array.from(output.dataSync());
       });
@@ -109,8 +118,8 @@ export class TFJSModelClassifier implements ISignClassifier {
       const marginDelta = top1 && top2 ? top1.probability - top2.probability : top1 ? top1.probability : 0;
 
       // 3. Ambiguity & Unknown Rejection Checks (Requirement 8 & 10)
-      const MIN_CONFIDENCE_THRESHOLD = 0.65;
-      const MIN_MARGIN_THRESHOLD = 0.08;
+      const MIN_CONFIDENCE_THRESHOLD = 0.70;
+      const MIN_MARGIN_THRESHOLD = 0.12;
 
       if (!top1 || top1.probability < MIN_CONFIDENCE_THRESHOLD) {
         return {
@@ -118,20 +127,20 @@ export class TFJSModelClassifier implements ISignClassifier {
           probability: top1 ? top1.probability : 0,
           candidates: candidateList.slice(0, 5),
           isUnknown: true,
-          reason: `Low prediction probability (${Math.round((top1?.probability ?? 0) * 100)}% < 65% threshold)`,
+          reason: `Low prediction probability (${Math.round((top1?.probability ?? 0) * 100)}% < 70% threshold)`,
           modelType: 'TFJS_NEURAL_NETWORK',
           marginDelta,
         };
       }
 
       // Check if top 2 candidates are too close (ambiguous hand shape)
-      if (top2 && top2.probability >= 0.55 && marginDelta < MIN_MARGIN_THRESHOLD) {
+      if (top2 && top2.probability >= 0.38 && marginDelta < MIN_MARGIN_THRESHOLD) {
         return {
           label: 'UNKNOWN',
           probability: top1.probability,
           candidates: candidateList.slice(0, 5),
           isUnknown: true,
-          reason: `Ambiguous between '${top1.label}' and '${top2.label}' (margin ${(marginDelta * 100).toFixed(1)}%)`,
+          reason: `Ambiguous between '${top1.label}' (${Math.round(top1.probability * 100)}%) and '${top2.label}' (${Math.round(top2.probability * 100)}%)`,
           modelType: 'TFJS_NEURAL_NETWORK',
           marginDelta,
         };

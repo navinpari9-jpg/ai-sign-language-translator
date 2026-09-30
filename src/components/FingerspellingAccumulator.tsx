@@ -142,6 +142,9 @@ export const FingerspellingAccumulator: React.FC<FingerspellingAccumulatorProps>
                 >
                   {currentResult?.isStable ? 'STABLE' : 'SEARCHING'}
                 </span>
+                <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded font-mono">
+                  {currentResult?.finalConfidence ?? 0}%
+                </span>
               </div>
               <p className="text-[11px] text-slate-500 font-mono mt-0.5">
                 {debounceInfo.message}
