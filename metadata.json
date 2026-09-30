@@ -1,0 +1,11 @@
+{
+  "name": "AI Sign Language Translator",
+  "description": "Real-time AI-powered sign language recognition, sentence builder, and speech synthesizer.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
